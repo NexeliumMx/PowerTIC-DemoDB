@@ -6,30 +6,26 @@ function getRandom(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function insertMeasurements() {
+async function insertMeasurement() {
   try {
-    // Start timestamp: January 1, 2023, at 00:00:00 UTC-6
+    // Start time: January 1, 2023, at 00:00:00 UTC-6
     let timestamp = DateTime.fromISO("2023-01-01T00:00:00", { zone: "UTC-6" });
 
-    // Variables to accumulate consumption
-    let cumulative_real_energy_imported = 0;
-    let cumulative_watt_hours_imported_phase_a = 0;
-    let cumulative_watt_hours_imported_phase_b = 0;
-    let cumulative_watt_hours_imported_phase_c = 0;
-    let cumulative_va_hours_imported = 0;
-    let cumulative_va_hours_imported_phase_a = 0;
-    let cumulative_va_hours_imported_phase_b = 0;
-    let cumulative_va_hours_imported_phase_c = 0;
-    let cumulative_var_hours_imported_q1 = 0;
-    let cumulative_var_hours_imported_q1_phase_a = 0;
-    let cumulative_var_hours_imported_q1_phase_b = 0;
-    let cumulative_var_hours_imported_q1_phase_c = 0;
-    let cumulative_var_hours_imported_q2 = 0;
-    let cumulative_var_hours_imported_q2_phase_a = 0;
-    let cumulative_var_hours_imported_q2_phase_b = 0;
-    let cumulative_var_hours_imported_q2_phase_c = 0;
+    let total_real_energy_imported = 0;
+    let total_va_hours_imported = 0;
+    let total_var_hours_imported_q1 = 0;
+    let total_var_hours_imported_q2 = 0;
 
-    for (let i = 0; i < 5; i++) {
+    while (timestamp <= DateTime.fromISO("2023-02-28T23:55:00", { zone: "UTC-6" })) {
+      // Check if the current timestamp is the start of a new month
+      if (timestamp.day === 1 && timestamp.hour === 0 && timestamp.minute === 0) {
+        // Reset the accumulated consumption for a new month
+        total_real_energy_imported = 0;
+        total_va_hours_imported = 0;
+        total_var_hours_imported_q1 = 0;
+        total_var_hours_imported_q2 = 0;
+      }
+
       // Generate random values for each specified parameter
       const amps_phase_a = getRandom(100, 980);
       const amps_phase_b = getRandom(100, 980);
@@ -47,34 +43,12 @@ async function insertMeasurements() {
       const voltage_ln_average = Math.round(
         (phase_voltage_an + phase_voltage_bn + phase_voltage_cn) / 3
       );
-
-      // Phase-to-phase voltage calculations using circuit rules
-      const angle = 120 * (Math.PI / 180); // Convert 120 degrees to radians
-      const phase_voltage_ab = Math.round(
-        Math.sqrt(
-          Math.pow(phase_voltage_an, 2) +
-            Math.pow(phase_voltage_bn, 2) -
-            2 * phase_voltage_an * phase_voltage_bn * Math.cos(angle)
-        )
-      );
-      const phase_voltage_bc = Math.round(
-        Math.sqrt(
-          Math.pow(phase_voltage_bn, 2) +
-            Math.pow(phase_voltage_cn, 2) -
-            2 * phase_voltage_bn * phase_voltage_cn * Math.cos(angle)
-        )
-      );
-      const phase_voltage_ca = Math.round(
-        Math.sqrt(
-          Math.pow(phase_voltage_cn, 2) +
-            Math.pow(phase_voltage_an, 2) -
-            2 * phase_voltage_cn * phase_voltage_an * Math.cos(angle)
-        )
-      );
+      const phase_voltage_ab = Math.abs(phase_voltage_an - phase_voltage_bn);
+      const phase_voltage_bc = Math.abs(phase_voltage_bn - phase_voltage_cn);
+      const phase_voltage_ca = Math.abs(phase_voltage_cn - phase_voltage_an);
       const voltage_ll_average = Math.round(
         (phase_voltage_ab + phase_voltage_bc + phase_voltage_ca) / 3
       );
-
       const power_factor = Math.round((pf_phase_a + pf_phase_b + pf_phase_c) / 3);
       const watts_phase_a = Math.round(
         (amps_phase_a * phase_voltage_an * (pf_phase_a / 1000)) / 1000
@@ -91,33 +65,33 @@ async function insertMeasurements() {
       const va_phase_c = Math.round((amps_phase_c * phase_voltage_cn) / 1000);
       const ac_apparent_power_va = va_phase_a + va_phase_b + va_phase_c;
       const var_phase_a = Math.round(
-        Math.sqrt(Math.pow(va_phase_a, 2) - Math.pow(watts_phase_a, 2))
+        Math.sqrt(va_phase_a ** 2 - watts_phase_a ** 2)
       );
       const var_phase_b = Math.round(
-        Math.sqrt(Math.pow(va_phase_b, 2) - Math.pow(watts_phase_b, 2))
+        Math.sqrt(va_phase_b ** 2 - watts_phase_b ** 2)
       );
       const var_phase_c = Math.round(
-        Math.sqrt(Math.pow(va_phase_c, 2) - Math.pow(watts_phase_c, 2))
+        Math.sqrt(va_phase_c ** 2 - watts_phase_c ** 2)
       );
       const reactive_power_var = var_phase_a + var_phase_b + var_phase_c;
 
-      // Imported energy values - accumulate over time
-      cumulative_real_energy_imported += total_real_power * 5; // Assuming 5 minutes interval
-      cumulative_watt_hours_imported_phase_a += watts_phase_a * 5;
-      cumulative_watt_hours_imported_phase_b += watts_phase_b * 5;
-      cumulative_watt_hours_imported_phase_c += watts_phase_c * 5;
-      cumulative_va_hours_imported += ac_apparent_power_va * 5;
-      cumulative_va_hours_imported_phase_a += va_phase_a * 5;
-      cumulative_va_hours_imported_phase_b += va_phase_b * 5;
-      cumulative_va_hours_imported_phase_c += va_phase_c * 5;
-      cumulative_var_hours_imported_q1 += reactive_power_var * 5;
-      cumulative_var_hours_imported_q1_phase_a += var_phase_a * 5;
-      cumulative_var_hours_imported_q1_phase_b += var_phase_b * 5;
-      cumulative_var_hours_imported_q1_phase_c += var_phase_c * 5;
-      cumulative_var_hours_imported_q2 += reactive_power_var * 5;
-      cumulative_var_hours_imported_q2_phase_a += var_phase_a * 5;
-      cumulative_var_hours_imported_q2_phase_b += var_phase_b * 5;
-      cumulative_var_hours_imported_q2_phase_c += var_phase_c * 5;
+      // Accumulate imported energy values
+      total_real_energy_imported += total_real_power * 5;
+      const total_watt_hours_imported_phase_a = watts_phase_a * 5;
+      const total_watt_hours_imported_phase_b = watts_phase_b * 5;
+      const total_watt_hours_imported_phase_c = watts_phase_c * 5;
+      total_va_hours_imported += ac_apparent_power_va * 5;
+      const total_va_hours_imported_phase_a = va_phase_a * 5;
+      const total_va_hours_imported_phase_b = va_phase_b * 5;
+      const total_va_hours_imported_phase_c = va_phase_c * 5;
+      total_var_hours_imported_q1 += reactive_power_var * 5;
+      const total_var_hours_imported_q1_phase_a = var_phase_a * 5;
+      const total_var_hours_imported_q1_phase_b = var_phase_b * 5;
+      const total_var_hours_imported_q1_phase_c = var_phase_c * 5;
+      total_var_hours_imported_q2 += reactive_power_var * 5;
+      const total_var_hours_imported_q2_phase_a = var_phase_a * 5;
+      const total_var_hours_imported_q2_phase_b = var_phase_b * 5;
+      const total_var_hours_imported_q2_phase_c = var_phase_c * 5;
 
       // Exported energy values (set to 0 as specified)
       const total_real_energy_exported = 0;
@@ -169,7 +143,7 @@ async function insertMeasurements() {
           $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
           $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63
       )
-  `;
+    `;
 
       const values = [
         timestamp.toISO(),
@@ -206,26 +180,26 @@ async function insertMeasurements() {
         total_watt_hours_exported_in_phase_a,
         total_watt_hours_exported_in_phase_b,
         total_watt_hours_exported_in_phase_c,
-        cumulative_real_energy_imported,
-        cumulative_watt_hours_imported_phase_a,
-        cumulative_watt_hours_imported_phase_b,
-        cumulative_watt_hours_imported_phase_c,
+        total_real_energy_imported,
+        total_watt_hours_imported_phase_a,
+        total_watt_hours_imported_phase_b,
+        total_watt_hours_imported_phase_c,
         total_va_hours_exported,
         total_va_hours_exported_phase_a,
         total_va_hours_exported_phase_b,
         total_va_hours_exported_phase_c,
-        cumulative_va_hours_imported,
-        cumulative_va_hours_imported_phase_a,
-        cumulative_va_hours_imported_phase_b,
-        cumulative_va_hours_imported_phase_c,
-        cumulative_var_hours_imported_q1,
-        cumulative_var_hours_imported_q1_phase_a,
-        cumulative_var_hours_imported_q1_phase_b,
-        cumulative_var_hours_imported_q1_phase_c,
-        cumulative_var_hours_imported_q2,
-        cumulative_var_hours_imported_q2_phase_a,
-        cumulative_var_hours_imported_q2_phase_b,
-        cumulative_var_hours_imported_q2_phase_c,
+        total_va_hours_imported,
+        total_va_hours_imported_phase_a,
+        total_va_hours_imported_phase_b,
+        total_va_hours_imported_phase_c,
+        total_var_hours_imported_q1,
+        total_var_hours_imported_q1_phase_a,
+        total_var_hours_imported_q1_phase_b,
+        total_var_hours_imported_q1_phase_c,
+        total_var_hours_imported_q2,
+        total_var_hours_imported_q2_phase_a,
+        total_var_hours_imported_q2_phase_b,
+        total_var_hours_imported_q2_phase_c,
         total_var_hours_exported_q3,
         total_var_hours_exported_q3_phase_a,
         total_var_hours_exported_q3_phase_b,
@@ -240,9 +214,9 @@ async function insertMeasurements() {
       // Execute the query
       await client.query(query, values);
 
-      console.log("Measurement inserted successfully with timestamp:", timestamp.toISO());
+      console.log(`Measurement inserted successfully at ${timestamp.toISO()}`);
 
-      // Increment the timestamp by 5 minutes
+      // Increment timestamp by 5 minutes
       timestamp = timestamp.plus({ minutes: 5 });
     }
   } catch (error) {
@@ -253,4 +227,5 @@ async function insertMeasurements() {
 }
 
 // Run the function
-insertMeasurements();
+insertMeasurement();
+rites
