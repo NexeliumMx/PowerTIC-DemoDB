@@ -2,6 +2,7 @@
   "dependencies": {
     "luxon": "^3.5.0",
     "pg": "^8.13.1",
-    "pg-types": "^4.0.2"
+    "pg-types": "^4.0.2",
+    "prompt-sync": "^4.2.0"
   }
 }

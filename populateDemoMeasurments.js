@@ -1,5 +1,6 @@
 const client = require("./client");
 const { DateTime } = require("luxon");
+const prompt = require('prompt-sync')();
 
 // Function to generate a random number within a specific range
 function getRandom(min, max) {
@@ -8,11 +9,33 @@ function getRandom(min, max) {
 
 async function insertMeasurements() {
   try {
-    // Start timestamp: January 1, 2023, at 00:00:00 UTC-6
-    let timestamp = DateTime.fromISO("2023-01-01T00:00:00", { zone: "UTC-6" });
+    // Prompt the user for year and month
+    const yearInput = prompt("Select year (e.g., 2023): ");
+    const monthInput = prompt("Select month (01-12): ");
 
-    // End timestamp: January 31, 2023, at 23:55:00 UTC-6
-    const endTimestamp = DateTime.fromISO("2023-01-31T23:55:00", { zone: "UTC-6" });
+    const year = parseInt(yearInput, 10);
+    const month = parseInt(monthInput, 10);
+
+    // Validate the inputs
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      console.error("Invalid year or month input.");
+      return;
+    }
+
+    // Determine the number of days in the selected month and year
+    const daysInMonth = DateTime.local(year, month).daysInMonth;
+
+    // Start timestamp: first day of the month at 00:00:00 UTC-6
+    let timestamp = DateTime.fromObject(
+      { year: year, month: month, day: 1, hour: 0, minute: 0, second: 0 },
+      { zone: "UTC-6" }
+    );
+
+    // End timestamp: last day of the month at 23:55:00 UTC-6
+    const endTimestamp = DateTime.fromObject(
+      { year: year, month: month, day: daysInMonth, hour: 23, minute: 55, second: 0 },
+      { zone: "UTC-6" }
+    );
 
     // Variables to accumulate consumption
     let cumulative_real_energy_imported = 0;
@@ -173,7 +196,7 @@ async function insertMeasurements() {
           $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
           $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63
       )
-  `;
+      `;
 
       const values = [
         timestamp.toISO(),
