@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS clients (
     ON UPDATE NO ACTION
 );
 
+
 CREATE TABLE IF NOT EXISTS Meters (
   serial_number TEXT PRIMARY KEY,
   sunspec_id TEXT NOT NULL,
